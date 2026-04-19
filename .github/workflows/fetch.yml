@@ -1,0 +1,85 @@
+on:
+    schedule:
+        - cron: '*/5 * * * *'
+    push:
+    workflow_dispatch:
+permissions:
+  contents: write
+name: build
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+      with:
+        fetch-depth: 0
+    - name: Checkout violet to violet folder
+      uses: actions/checkout@main
+      with:
+        fetch-depth: 0
+        repository: TaYaKi71751/violet
+        path: violet
+
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Install p7zip
+      run: |
+        sudo apt update
+        sudo apt install p7zip-full
+    - name: Build
+      run: |
+        cd violet
+        cd hsync
+        cd hsync 
+        dotnet publish -r linux-x64 -c Release /p:PublishSingleFile=true /p:PublishTrimmed=false /p:PublishReadyToRun=false
+        cd bin/Release
+        ls -al
+    - name: Fetch datas
+      run: |
+        cd violet/hsync/hsync/bin/Release/netcoreapp3.1/linux-x64/
+        cp ../../../../../../../hiddendata.json ./
+        cp ../../../../../../../ex-hentai-archive.json ./
+        cp ../../../../../../../metadata.json ./
+        ./hsync
+        cp hiddendata.json ../../../../../../../
+        cp ex-hentai-archive.json ../../../../../../../
+        cp metadata.json ../../../../../../../
+        7za a ../../../../../../../rawdata.7z rawdata
+        cd ../../../../../../../
+        rm -rf violet
+    - name: Commit and push
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+        git add -A
+        git commit -m "Update datas $(date +%s)" || echo "No changes"
+        git push
+    - name: Create Tag
+      id: create_tag
+      run: |
+        echo "tag_name=latest-$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      with:
+        tag_name: ${{ steps.create_tag.outputs.tag_name }}
+        release_name: Release ${{ steps.create_tag.outputs.tag_name }}
+        body: |
+          Update datas
+        draft: false
+        prerelease: false
+    
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./rawdata.7z
+        asset_name: rawdata.7z
+        asset_content_type: application/zip
