@@ -47,6 +47,11 @@ jobs:
         cp hiddendata.json ../../../../../../../
         cp ex-hentai-archive.json ../../../../../../../
         cp metadata.json ../../../../../../../
+        sqlite3 rawdata/data.db << EOF
+          DELETE FROM HitomiColumnModel WHERE Type = 'anime';
+          VACUUM INTO 'rawdata/data.db.new';
+        EOF
+        mv rawdata/data.db.new rawdata/data.db
         7za a ../../../../../../../rawdata.7z rawdata
         cd ../../../../../../../
         rm -rf violet
