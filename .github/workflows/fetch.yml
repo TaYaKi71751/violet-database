@@ -53,6 +53,8 @@ jobs:
           VACUUM;
         EOF
         cd ../
+        ./hsync -ls --sync-only
+        7za a ../../../../../../../chunk.7z chunk
         7za a ../../../../../../../rawdata.7z rawdata
         cd ../../../../../../../
         rm -rf violet
@@ -88,4 +90,13 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
         asset_path: ./rawdata.7z
         asset_name: rawdata.7z
+        asset_content_type: application/zip
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        asset_path: ./chunk.7z
+        asset_name: chunk.7z
         asset_content_type: application/zip
